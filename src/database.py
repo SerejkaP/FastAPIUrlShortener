@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from typing import AsyncGenerator
 from fastapi import Depends
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
@@ -16,13 +18,16 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session
 
-alembic_cfg = Config("alembic.ini")
+alembic_ini_path = Path(__file__).resolve().parent.parent / "alembic.ini"
+alembic_cfg = Config(str(alembic_ini_path))
 
 
 async def init_models():
     print(DATABASE_URL)
     async with engine.begin() as conn:
         alembic_cfg.attributes['connection'] = conn
+        alembic_cfg.set_main_option('script_location', str(
+            Path(__file__).resolve().parent.parent / 'alembic'))
         command.upgrade(alembic_cfg, "head")
         #     await conn.run_sync(Base.metadata.drop_all)
         #     await conn.run_sync(Base.metadata.create_all)

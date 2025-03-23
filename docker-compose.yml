@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+  fastapi:
+    build: .
+    container_name: fastapi_app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DB_USER=postgres
+      - DB_PASS=password
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=test
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - .:/app
+    networks:
+      - my_network
+
+  db:
+    image: postgres:17
+    container_name: postgres_db
+    restart: always
+    ports:
+      - "5433:5432"  # Хост 5433, контейнер 5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: test
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - my_network
+
+  redis:
+    image: redis:latest
+    container_name: redis_cache
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - my_network
+
+networks:
+  my_network:
+
+volumes:
+  pgdata:

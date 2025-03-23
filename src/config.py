@@ -8,7 +8,7 @@ DB_PASS = os.getenv("DB_PASS")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_NAME = os.getenv("DB_NAME")
-# SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
-# SMTP_USER = os.getenv("SMTP_USER")
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
 SECRET = "YOUR_SECRET_HERE"
