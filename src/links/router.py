@@ -30,41 +30,43 @@ async def createShorter(
             400,
             "Для создания короткой ссылки необходимо указать original_url"
         )
-    if url_params.custom_alias is not None:
-        # Проверка в Redis и в PgSQL
-        try:
-            cashed_url = await redis_client.get(url_params.custom_alias)
-        except Exception as e:
-            raise HTTPException(500, str(e))
-        if cashed_url is None:
-            exist = await service.get_shorturl_by_name(url_params.custom_alias, session)
-        if exist is not None or cashed_url is not None:
-            raise HTTPException(
-                400,
-                "Такая короткая ссылка уже существует!"
-            )
-        short_code = url_params.custom_alias
-    else:
-        short_code = shortuuid.uuid()
-    short = TShortUrl(
-        short_name=short_code,
-        original_url=str(url_params.original_url),
-        # использую datetime without time zone, поэтому .utcnow(), а не .now(timezone.utc)
-        create_time=datetime.utcnow(),
-        modify_time=datetime.utcnow(),
-        redirect_count=0,
-        user_id=None,
-        last_redirect=None
-    )
-    if user is not None:
-        short.user_id = user.id
-        # Для авторизованных пользователей можно создавать ссылку бессрочную
-        if url_params.expires_at is not None and url_params.expires_at > datetime.now(timezone.utc):
-            short.expires_at = url_params.expires_at.replace(tzinfo=None)
-    else:
-        # Для неавторизованных пользователей создается ссылка на 12 часов
-        short.expires_at = datetime.utcnow() + timedelta(hours=12)
     try:
+        if url_params.custom_alias is not None:
+            # Проверка в Redis и в PgSQL
+            cashed_url = await redis_client.get(url_params.custom_alias)
+            if cashed_url is None:
+                exist = await service.get_shorturl_by_name(url_params.custom_alias, session)
+                if exist is not None:
+                    raise HTTPException(
+                        400,
+                        "Такая короткая ссылка уже существует!"
+                    )
+            else:
+                raise HTTPException(
+                    400,
+                    "Такая короткая ссылка уже существует!"
+                )
+            short_code = url_params.custom_alias
+        else:
+            short_code = shortuuid.uuid()
+        short = TShortUrl(
+            short_name=short_code,
+            original_url=str(url_params.original_url),
+            # использую datetime without time zone, поэтому .utcnow(), а не .now(timezone.utc)
+            create_time=datetime.utcnow(),
+            modify_time=datetime.utcnow(),
+            redirect_count=0,
+            user_id=None,
+            last_redirect=None
+        )
+        if user is not None:
+            short.user_id = user.id
+            # Для авторизованных пользователей можно создавать ссылку бессрочную
+            if url_params.expires_at is not None and url_params.expires_at > datetime.now(timezone.utc):
+                short.expires_at = url_params.expires_at.replace(tzinfo=None)
+        else:
+            # Для неавторизованных пользователей создается ссылка на 12 часов
+            short.expires_at = datetime.utcnow() + timedelta(hours=12)
         session.add(short)
 
         event = TEvents(
@@ -83,6 +85,8 @@ async def createShorter(
 
         # Возвращает созданный короткий URL
         return f"{str(request.base_url)}links/{short.short_name}"
+    except HTTPException as httpEx:
+        raise HTTPException(httpEx.status_code, httpEx.detail)
     except Exception as e:
         raise HTTPException(500, str(e))
 
