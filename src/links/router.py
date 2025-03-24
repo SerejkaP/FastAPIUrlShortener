@@ -147,16 +147,19 @@ async def redirectShorter(
         original_url = await redis_client.get(short_code)
         if original_url is not None:
             await redis_client.incr(f"{short_code}:redirect_count")
-            await redis_client.set(f"{short_code}:last_redirect", datetime.now(timezone.utc).isoformat())
             # Продлить время жизни в кеше на 12 часов
             await redis_client.expire(short_code, 60*60*12)
             await redis_client.expire(f"{short_code}:redirect_count", 60*60*12)
+            await redis_client.setex(f"{short_code}:last_redirect", 60*60*12, datetime.now(timezone.utc).isoformat())
             return RedirectResponse(original_url)
         # Если нет в Redis, то искать в БД
         short = await service.get_shorturl_by_name(short_code, session)
         if short is not None:
             short.redirect_count = short.redirect_count+1
             short.last_redirect = datetime.utcnow()
+            # Добавлю в кеш на 12 часов, т.к. ссылка вновь активна
+            await redis_client.setex(short_code, 60*60*12, str(short.original_url))
+            await redis_client.setex(f"{short_code}:last_redirect", 60*60*12, datetime.now(timezone.utc).isoformat())
             await session.commit()
             return RedirectResponse(short.original_url)
         else:
