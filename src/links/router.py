@@ -187,7 +187,7 @@ async def removeShorter(
     if short is None:
         raise HTTPException(
             400,
-            f"Пользователю {user.email} не принадлежит короткая ссылка /{short_code}"
+            f"Пользователю {user.email} не принадлежит короткая ссылка {short_code}"
         )
     try:
         await session.delete(short)
@@ -227,13 +227,14 @@ async def updateShorter(
         )
     try:
         if updateParams.expires_at is not None and updateParams.expires_at > datetime.now(timezone.utc):
-            short.expires_at = updateParams.expires_at.utcfromtimestamp(0)
+            short.expires_at = updateParams.expires_at.astimezone(
+                timezone.utc).replace(tzinfo=None)
         short.original_url = str(updateParams.original_url)
         short.modify_time = datetime.utcnow()
 
         ttl = await redis_client.ttl(short_code)
         if ttl > 0:
-            redis_client.set(short_code, ttl, str(updateParams.original_url))
+            redis_client.setex(short_code, ttl, str(updateParams.original_url))
 
         event = TEvents(
             short_url=short.short_name,
