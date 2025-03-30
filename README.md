@@ -15,6 +15,10 @@
 `docker-compose` - для остановки контейнеров  
 `docker-compose -v` - для удаления
 
+Вывод запуска docker-compose в терминал:
+
+![Вывод запуска docker-compose в терминал](./images/docker-compose.png)
+
 **После запуска работу сервиса можно проверить с помощью swagger по адрессу `http://localhost:8000/docs#/`**
 
 Также можно запустить без docker-compose:
