@@ -137,6 +137,8 @@ async def getShortUrlStats(
                 redirect_count=redirect_count,
                 last_redirect=last_redirect
             )
+    except HTTPException as httpEx:
+        raise HTTPException(httpEx.status_code, httpEx.detail)
     except Exception as e:
         raise HTTPException(500, str(e))
 
@@ -246,5 +248,7 @@ async def updateShorter(
 
         await session.commit()
         return Response(status_code=200)
+    except HTTPException as httpEx:
+        raise HTTPException(httpEx.status_code, httpEx.detail)
     except Exception as e:
         raise HTTPException(500, str(e))
